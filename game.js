@@ -88,7 +88,7 @@ function setupConnection() {
       if (coopMode) $('p2-label').textContent = 'НАПАРНИК';
       message('');
     }
-    if (data.type === 'input' && isHost && state && state.players[1]) state.players[1].input = normalizeInput(data.input);
+    if (data.type === 'input' && isHost && state && state.players[data.playerIndex || 1]) state.players[data.playerIndex || 1].input = normalizeInput(data.input);
     if (data.type === 'shop-buy' && isHost && state && coopMode) buyItem(data.id);
     if (data.type === 'continue-wave' && isHost && state && coopMode) continueWave();
     if (data.type === 'state' && !isHost) {
@@ -133,7 +133,7 @@ function sound(kind) {
 }
 function sendGuestInput() {
   if (!connection || !connection.open || isHost) return;
-  connection.send({ type: 'input', input: normalizeInput({ up: !!input.ArrowUp, down: !!input.ArrowDown, left: !!input.ArrowLeft, right: !!input.ArrowRight, fire: !!input.Enter, dash: !!input.ShiftLeft || !!input.ShiftRight }) });
+  connection.send({ type: 'input', playerIndex: 1, input: normalizeInput({ up: !!input.ArrowUp, down: !!input.ArrowDown, left: !!input.ArrowLeft, right: !!input.ArrowRight, fire: !!input.Enter, dash: !!input.ShiftLeft || !!input.ShiftRight }) });
 }
 
 function newPlayer(x, color, angle) { return { x, y: WORLD.height / 2, angle, color, health: 3, maxHealth: 3, shield: 0, shieldTimer: 0, cooldown: 0, dash: 0, input: {} }; }
@@ -162,11 +162,17 @@ function configureHud() {
 }
 function loop(time) {
   const dt = Math.min((time - lastTime) / 1000, .035); lastTime = time;
+  applyHostInput();
   if (state && state.running && !state.shopOpen && !paused && !state.countdown && (isHost || soloMode)) update(dt);
+  if (isHost && state && connection && connection.open) broadcastState();
   if (banner.life > 0) banner.life -= dt;
   shake = Math.max(0, shake - dt * 18);
   draw(); updateHud();
   animationId = requestAnimationFrame(loop);
+}
+function applyHostInput() {
+  if (!state || !state.players[0] || !isHost) return;
+  state.players[0].input = normalizeInput({ up: !!input.KeyW, down: !!input.KeyS, left: !!input.KeyA, right: !!input.KeyD, fire: !!input.Space, dash: !!input.ShiftLeft || !!input.ShiftRight });
 }
 function update(dt) {
   state.players.forEach((p, idx) => {
@@ -187,7 +193,10 @@ function update(dt) {
   if (soloMode || coopMode) resolveSoloBullets();
   else state.bullets.forEach((b) => { const target = state.players[1 - b.owner]; if (Math.hypot(b.x - target.x, b.y - target.y) < 23) damagePlayer(target, 1, b.owner); });
   state.sparks = state.sparks.filter((s) => (s.life -= dt) > 0);
-  if (!soloMode && connection && connection.open) connection.send({ type: 'state', state });
+  if (isHost && connection && connection.open) broadcastState();
+}
+function broadcastState() {
+  if (connection && connection.open && state) connection.send({ type: 'state', state });
 }
 function damagePlayer(player, amount, attacker) {
   if (player.shield > 0) { player.shield--; player.shieldTimer = 8; sound('shield'); burst(player.x, player.y, 'cream'); }
@@ -206,7 +215,7 @@ function finishRound(winner) {
 }
 function startCountdown() {
   state.countdown = 3; lastCountdown = 3; $('countdown').textContent = '3'; $('countdown').classList.remove('hidden');
-  const timer = setInterval(() => { if (!state || soloMode) return clearInterval(timer); state.countdown--; if (state.countdown > 0) { $('countdown').textContent = state.countdown; sound('count'); } else { $('countdown').textContent = 'СТАРТ'; sound('start'); setTimeout(() => $('countdown').classList.add('hidden'), 500); clearInterval(timer); } }, 900);
+  const timer = setInterval(() => { if (!state || soloMode) return clearInterval(timer); state.countdown--; if (state.countdown <= 0) state.countdown = 0; broadcastState(); if (state.countdown > 0) { $('countdown').textContent = state.countdown; sound('count'); } else { $('countdown').textContent = 'СТАРТ'; sound('start'); setTimeout(() => $('countdown').classList.add('hidden'), 500); clearInterval(timer); } }, 900);
 }
 function spawnWave() {
   const amount = Math.min(3 + state.wave, 10);
@@ -342,7 +351,6 @@ function showDisconnect() { $('round-state').textContent = '● ИГРОК ВЫ�
 window.addEventListener('keydown', (e) => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault(); if (!input[e.code]) sound('click'); input[e.code] = true; sendGuestInput(); });
 window.addEventListener('keyup', (e) => { input[e.code] = false; sendGuestInput(); });
 setInterval(sendGuestInput, 40);
-setInterval(() => { if (!state || !state.running) return; const localInput = { up: !!input.KeyW, down: !!input.KeyS, left: !!input.KeyA, right: !!input.KeyD, fire: !!input.Space }; if (soloMode) state.players[0].input = localInput; else if (isHost && connection && connection.open) state.players[0].input = localInput; }, 40);
 window.addEventListener('resize', resizeCanvas); resizeCanvas();
 $('room-code-display').onclick = async () => { try { await navigator.clipboard.writeText($('room-code-display').textContent); $('copy-hint').textContent = 'Код скопирован'; } catch { $('copy-hint').textContent = 'Скопируй код вручную'; } };
 $('cancel-room').onclick = () => { if (peer) peer.destroy(); peer = null; connection = null; show(lobby); message(''); };
