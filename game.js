@@ -91,7 +91,7 @@ function setupConnection() {
 }
 
 function peerError(error, fallback) {
-  const known = { peer-unavailable: 'Комната не найдена или уже закрыта.', unavailable-id: 'Не удалось создать уникальную комнату. Попробуй ещё раз.', network: 'PeerJS не может подключиться к сети.', server-error: 'Сервис соединения временно недоступен.' };
+  const known = { 'peer-unavailable': 'Комната не найдена или уже закрыта.', 'unavailable-id': 'Не удалось создать уникальную комнату. Попробуй ещё раз.', network: 'PeerJS не может подключиться к сети.', 'server-error': 'Сервис соединения временно недоступен.' };
   return known[error && error.type] || fallback;
 }
 
