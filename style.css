@@ -10,7 +10,7 @@ button, input { font: inherit; }
 .brand-mark { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
 .brand-mark span { display: block; width: 9px; height: 9px; background: var(--cream); transform: rotate(45deg); box-shadow: 0 0 14px var(--cream); }
 .brand-mark span:nth-child(2) { background: var(--red); box-shadow: 0 0 14px var(--red); transform: rotate(45deg) scale(1.6); }
-.eyebrow { color: #6e7d9e; font-size: 11px; letter-spacing: 3px; margin: 0 0 10px; }
+.eyebrow { color: var(--cream); font-size: 11px; letter-spacing: 3px; margin: 0 0 10px; }
 h1, h2 { font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: 2px; margin: 0; line-height: .95; }
 h1 { font-size: clamp(64px, 12vw, 116px); text-shadow: 0 0 35px #3175c455; }
 h2 { font-size: clamp(42px, 8vw, 72px); }
@@ -22,8 +22,6 @@ h2 { font-size: clamp(42px, 8vw, 72px); }
 .action-card:hover { border-color: var(--cream); background: #282722; transform: translateY(-2px); }
 .solo-card:hover { border-color: var(--red); background: #30201e; }
 .solo-card .action-icon, .action-icon { color: var(--cream); font-size: 30px; }
-.pve-card:hover { border-color: var(--blue); background: #172d31; }
-.pve-card .action-icon { color: var(--blue); }
 .pve-card:hover { border-color: var(--blue); background: #172d31; }
 .pve-card .action-icon { color: var(--blue); }
 .action-card strong, .action-card small { display: block; }
@@ -61,7 +59,11 @@ input:focus { border-color: var(--blue); }
 .health-track i { display: block; width: 100%; height: 100%; background: var(--blue); transition: width .2s, background .2s; }
 .red-score .health-track i { background: var(--red); }
 .shield-readout { color: var(--cream); font-size: 9px; letter-spacing: 1px; }
+.pilot-status { color: var(--muted); font-style: normal; font-size: 8px; letter-spacing: 1px; text-transform: uppercase; }
+.blue-score .pilot-status { color: var(--blue); }
+.red-score .pilot-status { color: var(--red); }
 .canvas-wrap { position: relative; border: 2px solid #766743; background: #090b0b; box-shadow: 8px 8px 0 #050505; }
+.canvas-wrap::before { content: 'КЛАССИФИКАЦИЯ: УЧЕБНЫЙ БОЕВОЙ СЕКТОР'; position: absolute; top: 7px; left: 50%; z-index: 1; transform: translateX(-50%); color: #e5c777aa; font-size: 8px; letter-spacing: 2px; pointer-events: none; }
 canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
 .game-message { position: absolute; inset: 0; display: grid; place-content: center; background: #070b14c9; }
 .game-message strong { display: block; font: 64px 'Barlow Condensed'; text-transform: uppercase; letter-spacing: 3px; }
@@ -74,9 +76,11 @@ canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
 .shop-panel h2 { font-size: clamp(34px, 5vw, 60px); }
 .shop-balance { margin: 10px 0 18px; color: var(--muted); font-size: 12px; }
 .shop-balance strong { color: #d9c8ff; font-size: 16px; }
+.shop-note { color: var(--cream); font-size: 9px; letter-spacing: 1px; max-width: 620px; margin: 0 0 14px; }
 .shop-items { display: grid; grid-template-columns: repeat(2, minmax(180px, 260px)); gap: 8px; width: min(100%, 540px); margin-bottom: 18px; }
 .shop-item { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 11px 13px; border: 1px solid var(--line); background: #111a2b; color: var(--text); text-align: left; cursor: pointer; }
 .shop-item:hover:not(:disabled) { border-color: var(--cream); background: #302c20; }
+.shop-item[data-shop-id="revive"] { border-color: var(--red); background: #2d1c1b; }
 .shop-item:disabled { opacity: .45; cursor: not-allowed; }
 .shop-item strong { font-size: 11px; }
 .shop-item small { font-size: 9px; }
@@ -84,6 +88,7 @@ canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
 .sound-toggle { border: 1px solid #615c50; color: var(--muted); background: transparent; padding: 7px 9px; cursor: pointer; font-size: 9px; }
 .sound-toggle:hover { color: var(--cream); border-color: var(--cream); }
 .controls-bar { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; padding: 16px 0; color: #71809c; font-size: 9px; }
+.controls-bar::before { content: '◆ КОСМОДРОМ · СИСТЕМА 07'; color: var(--red); letter-spacing: 1px; }
 .controls-bar b { color: var(--text); font-size: 10px; }
 .solo-stats { color: #9ca9c2; }
 .solo-stats b { color: #d9c8ff; }

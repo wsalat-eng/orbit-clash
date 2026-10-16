@@ -3,7 +3,7 @@ const $ = (id) => document.getElementById(id);
 const lobby = $('lobby'), waiting = $('waiting'), gameScreen = $('game');
 const canvas = $('game-canvas'), ctx = canvas.getContext('2d');
 let peer = null, connection = null, isHost = false, playerNumber = 0, soloMode = false, coopMode = false, connectionTimer = null, handshakeComplete = false;
-let state = null, lastTime = 0, animationId = 0, input = {};
+let state = null, lastTime = 0, animationId = 0, input = {}, inputSequence = 0;
 let audioContext = null, soundEnabled = true;
 let paused = false, shake = 0, banner = { text: '', life: 0 }, lastCountdown = 0;
 const WORLD = { width: 1280, height: 720 };
@@ -88,12 +88,13 @@ function setupConnection() {
       if (coopMode) $('p2-label').textContent = 'НАПАРНИК';
       message('');
     }
-    if (data.type === 'input' && isHost && state && state.players[data.playerIndex || 1]) state.players[data.playerIndex || 1].input = normalizeInput(data.input);
+    if (data.type === 'input' && isHost && state && state.players[1]) { state.players[1].input = normalizeInput(data.input); state.players[1].inputSequence = data.sequence || state.players[1].inputSequence + 1; }
     if (data.type === 'shop-buy' && isHost && state && coopMode) buyItem(data.id);
     if (data.type === 'continue-wave' && isHost && state && coopMode) continueWave();
     if (data.type === 'state' && !isHost) {
       state = data.state;
       paused = !!state.paused;
+      renderNetworkPhase();
       if (gameScreen.classList.contains('hidden')) { show(gameScreen); configureHud(); resizeCanvas(); }
       draw(); updateHud();
     }
@@ -133,20 +134,19 @@ function sound(kind) {
 }
 function sendGuestInput() {
   if (!connection || !connection.open || isHost) return;
-  connection.send({ type: 'input', playerIndex: 1, input: normalizeInput({ up: !!input.ArrowUp, down: !!input.ArrowDown, left: !!input.ArrowLeft, right: !!input.ArrowRight, fire: !!input.Enter, dash: !!input.ShiftLeft || !!input.ShiftRight }) });
+  connection.send({ type: 'input', playerIndex: 1, sequence: ++inputSequence, input: normalizeInput({ up: !!input.ArrowUp, down: !!input.ArrowDown, left: !!input.ArrowLeft, right: !!input.ArrowRight, fire: !!input.Enter, dash: !!input.ShiftLeft || !!input.ShiftRight }) });
 }
 
-function newPlayer(x, color, angle) { return { x, y: WORLD.height / 2, angle, color, health: 3, maxHealth: 3, shield: 0, shieldTimer: 0, cooldown: 0, dash: 0, input: {} }; }
+function newPlayer(x, color, angle) { return { x, y: WORLD.height / 2, angle, color, health: 3, maxHealth: 3, shield: 0, shieldTimer: 0, cooldown: 0, dash: 0, input: {}, inputSequence: 0, alive: true, destroyed: false }; }
 function startGame() {
   soloMode = false;
-  state = { running: true, winner: 0, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0), newPlayer(1030, 'red', Math.PI)], wins: [0, 0], round: 1, countdown: 3, paused: false };
+  state = { running: true, winner: 0, phase: 'countdown', phaseEndsAt: Date.now() + 3000, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0), newPlayer(1030, 'red', Math.PI)], wins: [0, 0], round: 1, countdown: 3, paused: false };
   if (coopMode) { state.coop = true; state.enemies = []; state.drops = []; state.wave = 1; state.score = 0; state.combo = 0; state.comboTimer = 0; state.shopOpen = false; state.upgrades = { maxHealth: 3, speed: 260, cooldown: .28, shots: 1 }; state.players[0].x = 280; state.players[1].x = 1000; spawnWave(); }
   show(gameScreen); configureHud(); $('shop-panel').classList.add('hidden'); resizeCanvas(); $('game-message').classList.add('hidden'); lastTime = performance.now(); cancelAnimationFrame(animationId); animationId = requestAnimationFrame(loop);
-  startCountdown();
 }
 function startSoloGame() {
   soloMode = true;
-  state = { running: true, winner: 0, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0)], enemies: [], drops: [], wave: 1, score: 0, combo: 0, comboTimer: 0, waveDelay: 0, shopOpen: false, upgrades: { maxHealth: 3, speed: 260, cooldown: .28, shots: 1, shield: 0 } };
+  state = { running: true, phase: 'running', winner: 0, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0)], enemies: [], drops: [], wave: 1, score: 0, combo: 0, comboTimer: 0, waveDelay: 0, shopOpen: false, upgrades: { maxHealth: 3, speed: 260, cooldown: .28, shots: 1, shield: 0 } };
   show(gameScreen); configureHud(); $('shop-panel').classList.add('hidden'); resizeCanvas(); $('game-message').classList.add('hidden'); lastTime = performance.now(); cancelAnimationFrame(animationId); animationId = requestAnimationFrame(loop);
   spawnWave();
 }
@@ -159,11 +159,14 @@ function configureHud() {
   $('p1-health-bar').style.width = '100%'; $('p2-health-bar').style.width = '100%'; $('p1-shield').textContent = 'ЩИТ 0'; $('p2-shield').textContent = 'ЩИТ 0';
   $('solo-stats').classList.toggle('hidden', !(soloMode || coopMode));
   document.querySelectorAll('.controls-player-two').forEach((element) => element.classList.toggle('hidden', false));
+  $('p1-status').textContent = 'В БОЮ'; $('p2-status').textContent = soloMode ? 'СЕКТОР ДРОНОВ' : 'В БОЮ';
 }
 function loop(time) {
   const dt = Math.min((time - lastTime) / 1000, .035); lastTime = time;
   applyHostInput();
-  if (state && state.running && !state.shopOpen && !paused && !state.countdown && (isHost || soloMode)) update(dt);
+  if (state && isHost && state.phase === 'countdown' && Date.now() >= state.phaseEndsAt) state.phase = 'running';
+  if (state && !soloMode) renderNetworkPhase();
+  if (state && state.running && !state.shopOpen && !paused && state.phase === 'running' && (isHost || soloMode)) update(dt);
   if (isHost && state && connection && connection.open) broadcastState();
   if (banner.life > 0) banner.life -= dt;
   shake = Math.max(0, shake - dt * 18);
@@ -174,8 +177,17 @@ function applyHostInput() {
   if (!state || !state.players[0] || !isHost) return;
   state.players[0].input = normalizeInput({ up: !!input.KeyW, down: !!input.KeyS, left: !!input.KeyA, right: !!input.KeyD, fire: !!input.Space, dash: !!input.ShiftLeft || !!input.ShiftRight });
 }
+function renderNetworkPhase() {
+  if (!state || soloMode) return;
+  if (state.phase === 'countdown') {
+    const seconds = Math.max(1, Math.ceil((state.phaseEndsAt - Date.now()) / 1000));
+    $('countdown').textContent = seconds;
+    $('countdown').classList.remove('hidden');
+  } else $('countdown').classList.add('hidden');
+}
 function update(dt) {
   state.players.forEach((p, idx) => {
+    if (!p.alive) return;
     const keys = p.input || {};
     if (keys.left) p.angle -= 3.1 * dt;
     if (keys.right) p.angle += 3.1 * dt;
@@ -199,12 +211,14 @@ function broadcastState() {
   if (connection && connection.open && state) connection.send({ type: 'state', state });
 }
 function damagePlayer(player, amount, attacker) {
+  if (!player || !player.alive) return;
   if (player.shield > 0) { player.shield--; player.shieldTimer = 8; sound('shield'); burst(player.x, player.y, 'cream'); }
   else { player.health -= amount; shake = 6; sound('damage'); burst(player.x, player.y, player.color); }
   if (player.health <= 0) {
+    player.health = 0; player.alive = false; player.destroyed = true; player.input = {};
     if (soloMode) { state.running = false; state.winner = 0; }
     else if (coopMode) {
-      if (state.players.every((pilot) => pilot.health <= 0)) { state.running = false; state.winner = 0; }
+      if (state.players.every((pilot) => !pilot.alive)) { state.running = false; state.winner = 0; state.phase = 'finished'; }
     } else finishRound(attacker);
   }
 }
@@ -212,10 +226,6 @@ function finishRound(winner) {
   state.running = false; state.winner = winner + 1; state.wins[winner]++;
   if (state.wins[winner] >= 3) { banner = { text: `ПОБЕДА ${winner + 1}`, life: 4 }; }
   else { banner = { text: `РАУНД ${state.round} ЗАВЕРШЁН`, life: 3 }; }
-}
-function startCountdown() {
-  state.countdown = 3; lastCountdown = 3; $('countdown').textContent = '3'; $('countdown').classList.remove('hidden');
-  const timer = setInterval(() => { if (!state || soloMode) return clearInterval(timer); state.countdown--; if (state.countdown <= 0) state.countdown = 0; broadcastState(); if (state.countdown > 0) { $('countdown').textContent = state.countdown; sound('count'); } else { $('countdown').textContent = 'СТАРТ'; sound('start'); setTimeout(() => $('countdown').classList.add('hidden'), 500); clearInterval(timer); } }, 900);
 }
 function spawnWave() {
   const amount = Math.min(3 + state.wave, 10);
@@ -240,20 +250,22 @@ function firePlayer(player, idx) {
   sound('fire');
 }
 function updateSolo(dt) {
-  const player = state.players[0];
-  if (state.enemies.length === 0 && !state.shopOpen) { state.shopOpen = true; openShop(); sound('wave'); }
+  const livePlayers = state.players.filter((pilot) => pilot.alive);
+  const player = livePlayers[0];
+  if (state.enemies.length === 0 && !state.shopOpen) { state.shopOpen = true; state.phase = 'shop'; openShop(); sound('wave'); }
+  if (!player) return;
   state.enemies.forEach((enemy) => {
-    const dx = player.x - enemy.x, dy = player.y - enemy.y, distance = Math.hypot(dx, dy) || 1;
+    const target = livePlayers.reduce((closest, pilot) => Math.hypot(pilot.x - enemy.x, pilot.y - enemy.y) < Math.hypot(closest.x - enemy.x, closest.y - enemy.y) ? pilot : closest, livePlayers[0]);
+    const dx = target.x - enemy.x, dy = target.y - enemy.y, distance = Math.hypot(dx, dy) || 1;
     enemy.angle = Math.atan2(dy, dx); enemy.x += dx / distance * enemy.speed * dt; enemy.y += dy / distance * enemy.speed * dt;
     enemy.cooldown -= dt;
     if (enemy.type === 'boss' && enemy.y < 150) enemy.y += 18 * dt;
     if (enemy.cooldown <= 0 && distance < 700) {
       const shots = enemy.type === 'boss' ? 3 : 1;
-      for (let shot = 0; shot < shots; shot++) { const targetIndex = coopMode ? (Math.random() < .5 ? 0 : 1) : 0; const target = state.players[targetIndex]; const tx = target.x - enemy.x, ty = target.y - enemy.y, targetAngle = Math.atan2(ty, tx); const spread = (shot - (shots - 1) / 2) * .18; const a = targetAngle + spread; state.bullets.push({ x: enemy.x, y: enemy.y, vx: Math.cos(a) * 280, vy: Math.sin(a) * 280, owner: 0, target: targetIndex, fromEnemy: true, life: 2.2 }); }
+      for (let shot = 0; shot < shots; shot++) { const targetIndex = state.players.indexOf(target); const tx = target.x - enemy.x, ty = target.y - enemy.y, targetAngle = Math.atan2(ty, tx); const spread = (shot - (shots - 1) / 2) * .18; const a = targetAngle + spread; state.bullets.push({ x: enemy.x, y: enemy.y, vx: Math.cos(a) * 280, vy: Math.sin(a) * 280, owner: 0, target: targetIndex, fromEnemy: true, life: 2.2 }); }
       enemy.cooldown = enemy.type === 'boss' ? 1.2 : Math.max(.7, 1.8 - state.wave * .06);
     }
-    if (distance < (enemy.radius || 34)) { damagePlayer(player, 1, 0); enemy.x = -100; }
-    if (coopMode && state.players[1] && Math.hypot(enemy.x - state.players[1].x, enemy.y - state.players[1].y) < (enemy.radius || 34)) { damagePlayer(state.players[1], 1, 1); enemy.x = -100; }
+    if (distance < (enemy.radius || 34)) { damagePlayer(target, 1, 0); enemy.x = -100; }
   });
   state.enemies = state.enemies.filter((enemy) => enemy.x > -80 && enemy.x < WORLD.width + 80 && enemy.y > -80 && enemy.y < WORLD.height + 80);
 }
@@ -279,7 +291,8 @@ const SHOP_ITEMS = [
   { id: 'cooldown', name: 'Быстрая перезарядка', description: 'Стрелять на 20% быстрее', price: 400, canBuy: () => state.upgrades.cooldown > .12, buy: () => { state.upgrades.cooldown = Math.max(.12, state.upgrades.cooldown * .8); } },
   { id: 'shots', name: 'Двойной выстрел', description: 'Два снаряда веером', price: 750, canBuy: () => state.upgrades.shots < 2, buy: () => { state.upgrades.shots = 2; } },
   { id: 'triple', name: 'Тройной импульс', description: 'Три снаряда веером', price: 1400, canBuy: () => state.upgrades.shots < 3, buy: () => { state.upgrades.shots = 3; } },
-  { id: 'shield', name: 'Щитовой генератор', description: '+1 заряд щита', price: 600, canBuy: (p) => p.shield < 3, buy: (p) => { p.shield++; } }
+  { id: 'shield', name: 'Щитовой генератор', description: '+1 заряд щита', price: 600, canBuy: (p) => p.shield < 3, buy: (p) => { p.shield++; } },
+  { id: 'revive', name: 'ВОССТАНОВИТЬ НАПАРНИКА', description: 'Вернуть уничтоженный корабль', price: 600, canBuy: (p) => coopMode && state.players.some((pilot) => pilot.destroyed), buy: () => reviveDestroyedPilot() }
 ];
 function openShop() {
   if (!(soloMode || coopMode) || !state.running) return;
@@ -287,20 +300,27 @@ function openShop() {
 }
 function renderShop() {
   $('shop-score').textContent = state.score;
+  $('shop-note').textContent = coopMode ? (isHost ? 'КОМАНДНЫЙ РЕСУРС · КОМАНДИР ПОДТВЕРЖДАЕТ ПОКУПКИ' : 'КОМАНДНЫЙ РЕСУРС · ЗАПРОС У КОМАНДИРА') : 'ОЧКИ ПИЛОТА · МОДЕРНИЗАЦИЯ КОРАБЛЯ';
   $('shop-items').innerHTML = SHOP_ITEMS.map((item) => {
     const available = state.score >= item.price && item.canBuy(state.players[0]);
     return `<button class="shop-item" data-shop-id="${item.id}" ${available ? '' : 'disabled'}><strong>${item.name}</strong><small>${item.description}</small><span class="shop-price">${item.price} очков</span></button>`;
   }).join('');
 }
+function reviveDestroyedPilot() {
+  const pilot = state.players.find((entry) => entry.destroyed);
+  if (!pilot) return;
+  pilot.destroyed = false; pilot.alive = true; pilot.health = Math.min(2, pilot.maxHealth); pilot.shield = Math.max(1, pilot.shield); pilot.x = pilot.color === 'blue' ? 260 : WORLD.width - 260; pilot.y = WORLD.height / 2; state.phase = 'shop'; sound('pickup');
+}
 function buyItem(id) {
   const item = SHOP_ITEMS.find((entry) => entry.id === id), player = state.players[0];
-  if (!item || state.score < item.price || !item.canBuy(player)) return;
+  const targetPlayer = coopMode && id === 'revive' ? state.players.find((entry) => entry.destroyed) || player : player;
+  if (!item || state.score < item.price || !item.canBuy(targetPlayer)) return;
   state.score -= item.price;
   if (coopMode) state.players.forEach((pilot) => item.buy(pilot));
   else item.buy(player);
   sound('buy'); renderShop(); updateHud();
 }
-function continueWave() { if (!(soloMode || coopMode) || !state || !state.shopOpen) return; initAudio(); sound('wave'); state.shopOpen = false; $('shop-panel').classList.add('hidden'); state.wave++; spawnWave(); }
+function continueWave() { if (!(soloMode || coopMode) || !state || !state.shopOpen) return; initAudio(); sound('wave'); state.shopOpen = false; state.phase = 'running'; $('shop-panel').classList.add('hidden'); state.wave++; spawnWave(); }
 $('continue-wave').onclick = () => { if (coopMode && !isHost && connection && connection.open) { connection.send({ type: 'continue-wave' }); return; } continueWave(); };
 $('shop-items').addEventListener('click', (event) => {
   const button = event.target.closest('[data-shop-id]');
@@ -326,7 +346,7 @@ function draw() {
   state.sparks.forEach((s) => { ctx.globalAlpha = s.life * 2; ctx.fillStyle = s.color === 'blue' ? '#42a9ff' : '#ff5b73'; ctx.fillRect(s.x, s.y, 4, 4); }); ctx.globalAlpha = 1;
   state.players.forEach(drawShip); if (soloMode || coopMode) state.enemies.forEach(drawEnemy); if (soloMode || coopMode) state.drops?.forEach(drawDrop); ctx.restore();
 }
-function drawShip(p) { ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle); const c = p.color === 'blue' ? '#5fc4d8' : '#e34b3f'; ctx.shadowBlur = 14; ctx.shadowColor = c; ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(27, 0); ctx.lineTo(-9, -16); ctx.lineTo(-17, -8); ctx.lineTo(-13, 0); ctx.lineTo(-17, 8); ctx.lineTo(-9, 16); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#f4ead5'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#f4ead5'; ctx.fillRect(-5, -4, 10, 8); if (p.input && p.input.up) { ctx.fillStyle = '#e5c777'; ctx.beginPath(); ctx.moveTo(-14, -5); ctx.lineTo(-30, 0); ctx.lineTo(-14, 5); ctx.fill(); } ctx.restore(); }
+function drawShip(p) { if (!p.alive) return; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.angle); const c = p.color === 'blue' ? '#5fc4d8' : '#e34b3f'; ctx.shadowBlur = 14; ctx.shadowColor = c; ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(27, 0); ctx.lineTo(-9, -16); ctx.lineTo(-17, -8); ctx.lineTo(-13, 0); ctx.lineTo(-17, 8); ctx.lineTo(-9, 16); ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0; ctx.strokeStyle = '#f4ead5'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#f4ead5'; ctx.fillRect(-5, -4, 10, 8); if (p.input && p.input.up) { ctx.fillStyle = '#e5c777'; ctx.beginPath(); ctx.moveTo(-14, -5); ctx.lineTo(-30, 0); ctx.lineTo(-14, 5); ctx.fill(); } ctx.restore(); }
 function drawEnemy(enemy) { ctx.save(); ctx.translate(enemy.x, enemy.y); ctx.rotate(enemy.angle); ctx.fillStyle = '#e34b3f'; ctx.shadowBlur = 13; ctx.shadowColor = '#e34b3f'; ctx.beginPath(); ctx.moveTo(19, 0); ctx.lineTo(-12, -12); ctx.lineTo(-7, 0); ctx.lineTo(-12, 12); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#e5c777'; ctx.stroke(); ctx.fillStyle = '#e5c777'; ctx.fillRect(-15, -3, 7, 6); ctx.restore(); }
 function drawDrop(drop) { ctx.save(); ctx.translate(drop.x, drop.y); ctx.rotate(performance.now() / 500); ctx.fillStyle = drop.kind === 'repair' ? '#61d39a' : '#e5c777'; ctx.strokeStyle = '#f4ead5'; ctx.lineWidth = 2; ctx.beginPath(); ctx.rect(-9, -9, 18, 18); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#111316'; ctx.font = 'bold 12px Space Mono'; ctx.textAlign = 'center'; ctx.fillText(drop.kind === 'repair' ? '+' : 'S', 0, 5); ctx.restore(); }
 function updateHud() {
@@ -342,6 +362,8 @@ function updateHud() {
   if (soloMode || coopMode) { $('wave-value').textContent = state.wave; $('enemy-value').textContent = state.enemies.length; $('score-value').textContent = state.score; if (state.shopOpen && $('shop-panel').classList.contains('hidden')) openShop(); }
   $('p1-shield').textContent = `ЩИТ ${player.shield || 0}`;
   if (opponent) $('p2-shield').textContent = `ЩИТ ${opponent.shield || 0}`;
+  $('p1-status').textContent = player.destroyed ? 'УНИЧТОЖЕН' : player.alive ? 'В БОЮ' : 'ОЖИДАНИЕ';
+  $('p2-status').textContent = soloMode ? 'СЕКТОР ДРОНОВ' : opponent && opponent.destroyed ? 'УНИЧТОЖЕН' : opponent && opponent.alive ? 'В БОЮ' : 'ОЖИДАНИЕ';
   $('round-score').textContent = (soloMode || coopMode) ? `СЕРИЯ ${state.combo || 0}` : `РАУНД ${state.wins[0]} : ${state.wins[1]}`;
   if (!state.running) showWinner();
 }

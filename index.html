@@ -52,9 +52,9 @@
 
     <section id="game" class="game-screen hidden">
       <header class="game-header">
-        <div class="player-score blue-score"><span class="player-dot"></span><span id="p1-label">ИГРОК 1</span><strong id="p1-health">HP 3 / 3</strong><i class="health-track"><i id="p1-health-bar"></i></i><span id="p1-shield" class="shield-readout">ЩИТ 0</span></div>
+        <div class="player-score blue-score"><span class="player-dot"></span><span id="p1-label">ИГРОК 1</span><strong id="p1-health">HP 3 / 3</strong><i class="health-track"><i id="p1-health-bar"></i></i><span id="p1-shield" class="shield-readout">ЩИТ 0</span><em id="p1-status" class="pilot-status">В БОЮ</em></div>
         <div class="game-title">ОРБИТАЛЬНЫЙ КОМПЛЕКС <span id="round-state">● ONLINE</span><b id="round-score">РАУНД 0 : 0</b></div>
-        <div class="player-score red-score"><strong id="p2-health">HP 3 / 3</strong><i class="health-track"><i id="p2-health-bar"></i></i><span id="p2-label">ИГРОК 2</span><span id="p2-shield" class="shield-readout">ЩИТ 0</span><span class="player-dot"></span></div>
+        <div class="player-score red-score"><strong id="p2-health">HP 3 / 3</strong><i class="health-track"><i id="p2-health-bar"></i></i><span id="p2-label">ИГРОК 2</span><span id="p2-shield" class="shield-readout">ЩИТ 0</span><em id="p2-status" class="pilot-status">В БОЮ</em><span class="player-dot"></span></div>
       </header>
       <div class="canvas-wrap">
         <canvas id="game-canvas"></canvas>
@@ -65,6 +65,7 @@
           <p class="eyebrow">ТЕХНИЧЕСКИЙ ОТСЕК · ПЕРЕЗАРЯДКА</p>
           <h2>МОДУЛЬ МОДЕРНИЗАЦИИ</h2>
           <p class="shop-balance">Твои очки: <strong id="shop-score">0</strong></p>
+          <p id="shop-note" class="shop-note"></p>
           <div id="shop-items" class="shop-items"></div>
           <button id="continue-wave" class="button button-light">ЗАПУСТИТЬ СЛЕДУЮЩУЮ ВОЛНУ</button>
         </div>
