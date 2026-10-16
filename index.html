@@ -19,6 +19,10 @@
           <span class="action-icon">✦</span>
           <span><strong>ОТКРЫТЬ КАНАЛ</strong><small>ТЫ БУДЕШЬ КОРАБЛЁМ «СИНИЙ-01»</small></span>
         </button>
+        <button id="create-pve" class="action-card pve-card">
+          <span class="action-icon">⬢</span>
+          <span><strong>СОВМЕСТНЫЙ РУБЕЖ</strong><small>ДВА ПИЛОТА ПРОТИВ ВОЛН · БЕЗ ДРУЖЕСТВЕННОГО ОГНЯ</small></span>
+        </button>
         <button id="solo-mode" class="action-card solo-card">
           <span class="action-icon">◈</span>
           <span><strong>ОДИНОЧНЫЙ ВЫЛЕТ</strong><small>ОТБИВАЙСЯ ОТ ВОЛН ДРОНОВ</small></span>
@@ -48,13 +52,15 @@
 
     <section id="game" class="game-screen hidden">
       <header class="game-header">
-        <div class="player-score blue-score"><span class="player-dot"></span><span>ИГРОК 1</span><strong id="p1-health">HP 3 / 3</strong><i class="health-track"><i id="p1-health-bar"></i></i></div>
-        <div class="game-title">ОРБИТАЛЬНЫЙ КОМПЛЕКС <span id="round-state">● ONLINE</span></div>
-        <div class="player-score red-score"><strong id="p2-health">HP 3 / 3</strong><i class="health-track"><i id="p2-health-bar"></i></i><span id="p2-label">ИГРОК 2</span><span class="player-dot"></span></div>
+        <div class="player-score blue-score"><span class="player-dot"></span><span id="p1-label">ИГРОК 1</span><strong id="p1-health">HP 3 / 3</strong><i class="health-track"><i id="p1-health-bar"></i></i><span id="p1-shield" class="shield-readout">ЩИТ 0</span></div>
+        <div class="game-title">ОРБИТАЛЬНЫЙ КОМПЛЕКС <span id="round-state">● ONLINE</span><b id="round-score">РАУНД 0 : 0</b></div>
+        <div class="player-score red-score"><strong id="p2-health">HP 3 / 3</strong><i class="health-track"><i id="p2-health-bar"></i></i><span id="p2-label">ИГРОК 2</span><span id="p2-shield" class="shield-readout">ЩИТ 0</span><span class="player-dot"></span></div>
       </header>
       <div class="canvas-wrap">
         <canvas id="game-canvas"></canvas>
         <div id="game-message" class="game-message hidden"></div>
+        <div id="countdown" class="countdown hidden">3</div>
+        <div id="pause-panel" class="pause-panel hidden"><p class="eyebrow">СИСТЕМА ПРИОСТАНОВЛЕНА</p><h2>ПАУЗА</h2><button id="resume-game" class="button button-light">ПРОДОЛЖИТЬ</button></div>
         <div id="shop-panel" class="shop-panel hidden">
           <p class="eyebrow">ТЕХНИЧЕСКИЙ ОТСЕК · ПЕРЕЗАРЯДКА</p>
           <h2>МОДУЛЬ МОДЕРНИЗАЦИИ</h2>
@@ -64,7 +70,7 @@
         </div>
       </div>
       <footer class="controls-bar">
-        <span><b>WASD</b> ДВИЖЕНИЕ И ПОВОРОТ</span><span><b>ПРОБЕЛ</b> ОГОНЬ</span>
+        <span><b>WASD</b> ДВИЖЕНИЕ И ПОВОРОТ</span><span><b>ПРОБЕЛ</b> ОГОНЬ</span><span><b>SHIFT</b> РЫВОК</span>
         <span id="solo-stats" class="solo-stats hidden">ВОЛНА <b id="wave-value">1</b> · ВРАГИ <b id="enemy-value">0</b> · СЧЁТ <b id="score-value">0</b></span>
         <span class="controls-player-two"><b>СТРЕЛКИ</b> ДВИЖЕНИЕ И ПОВОРОТ</span><span class="controls-player-two"><b>ENTER</b> ОГОНЬ</span>
         <button id="sound-toggle" class="sound-toggle" title="Включить или выключить звук">ЗВУК: ВКЛ</button>
