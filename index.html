@@ -10,26 +10,26 @@
   <main class="app-shell">
     <section id="lobby" class="screen lobby-screen">
       <div class="brand-mark"><span></span><span></span><span></span></div>
-      <p class="eyebrow">ONLINE SPACE DUEL</p>
+      <p class="eyebrow">ОРБИТАЛЬНЫЙ КОМПЛЕКС №07 · СЕТЕВОЙ КАНАЛ</p>
       <h1>Orbit Clash</h1>
-      <p class="intro">Космическая дуэль для двух игроков. Создай комнату и пригласи товарища по коду.</p>
+      <p class="intro">Двухместная космическая дуэль. Открой канал, передай код товарищу и вступите в бой.</p>
 
       <div class="lobby-grid">
         <button id="create-room" class="action-card action-primary">
           <span class="action-icon">✦</span>
-          <span><strong>Создать комнату</strong><small>Ты будешь синим кораблём</small></span>
+          <span><strong>ОТКРЫТЬ КАНАЛ</strong><small>ТЫ БУДЕШЬ КОРАБЛЁМ «СИНИЙ-01»</small></span>
         </button>
         <button id="solo-mode" class="action-card solo-card">
           <span class="action-icon">◈</span>
-          <span><strong>Играть одному</strong><small>Отбивайся от волн дронов</small></span>
+          <span><strong>ОДИНОЧНЫЙ ВЫЛЕТ</strong><small>ОТБИВАЙСЯ ОТ ВОЛН ДРОНОВ</small></span>
         </button>
         <div class="join-card">
-          <label for="room-code">Код комнаты</label>
+          <label for="room-code">Код входного канала</label>
           <div class="join-row">
             <input id="room-code" type="text" maxlength="8" placeholder="Например, A7K2Q" autocomplete="off">
-            <button id="join-room" class="button button-light">Войти</button>
+            <button id="join-room" class="button button-light">ПОДКЛЮЧИТЬСЯ</button>
           </div>
-          <small>Введи код, который отправил первый игрок</small>
+          <small>ВВЕДИ КОД, ПОЛУЧЕННЫЙ ОТ КОМАНДИРА КАНАЛА</small>
         </div>
       </div>
       <p id="connection-message" class="status-message" aria-live="polite"></p>
@@ -49,24 +49,25 @@
     <section id="game" class="game-screen hidden">
       <header class="game-header">
         <div class="player-score blue-score"><span class="player-dot"></span><span>ИГРОК 1</span><strong id="p1-health">HP 3 / 3</strong><i class="health-track"><i id="p1-health-bar"></i></i></div>
-        <div class="game-title">ORBIT CLASH <span id="round-state">● ONLINE</span></div>
+        <div class="game-title">ОРБИТАЛЬНЫЙ КОМПЛЕКС <span id="round-state">● ONLINE</span></div>
         <div class="player-score red-score"><strong id="p2-health">HP 3 / 3</strong><i class="health-track"><i id="p2-health-bar"></i></i><span id="p2-label">ИГРОК 2</span><span class="player-dot"></span></div>
       </header>
       <div class="canvas-wrap">
         <canvas id="game-canvas"></canvas>
         <div id="game-message" class="game-message hidden"></div>
         <div id="shop-panel" class="shop-panel hidden">
-          <p class="eyebrow">МЕЖДУ ВОЛНАМИ</p>
-          <h2>Магазин улучшений</h2>
+          <p class="eyebrow">ТЕХНИЧЕСКИЙ ОТСЕК · ПЕРЕЗАРЯДКА</p>
+          <h2>МОДУЛЬ МОДЕРНИЗАЦИИ</h2>
           <p class="shop-balance">Твои очки: <strong id="shop-score">0</strong></p>
           <div id="shop-items" class="shop-items"></div>
-          <button id="continue-wave" class="button button-light">Продолжить</button>
+          <button id="continue-wave" class="button button-light">ЗАПУСТИТЬ СЛЕДУЮЩУЮ ВОЛНУ</button>
         </div>
       </div>
       <footer class="controls-bar">
-        <span><b>WASD</b> движение и поворот</span><span><b>ПРОБЕЛ</b> огонь</span>
+        <span><b>WASD</b> ДВИЖЕНИЕ И ПОВОРОТ</span><span><b>ПРОБЕЛ</b> ОГОНЬ</span>
         <span id="solo-stats" class="solo-stats hidden">ВОЛНА <b id="wave-value">1</b> · ВРАГИ <b id="enemy-value">0</b> · СЧЁТ <b id="score-value">0</b></span>
-        <span class="controls-player-two"><b>СТРЕЛКИ</b> движение и поворот</span><span class="controls-player-two"><b>ENTER</b> огонь</span>
+        <span class="controls-player-two"><b>СТРЕЛКИ</b> ДВИЖЕНИЕ И ПОВОРОТ</span><span class="controls-player-two"><b>ENTER</b> ОГОНЬ</span>
+        <button id="sound-toggle" class="sound-toggle" title="Включить или выключить звук">ЗВУК: ВКЛ</button>
       </footer>
     </section>
   </main>
