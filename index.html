@@ -48,13 +48,20 @@
 
     <section id="game" class="game-screen hidden">
       <header class="game-header">
-        <div class="player-score blue-score"><span class="player-dot"></span><span>ИГРОК 1</span><strong id="p1-health">♥ ♥ ♥</strong></div>
+        <div class="player-score blue-score"><span class="player-dot"></span><span>ИГРОК 1</span><strong id="p1-health">HP 3 / 3</strong><i class="health-track"><i id="p1-health-bar"></i></i></div>
         <div class="game-title">ORBIT CLASH <span id="round-state">● ONLINE</span></div>
-        <div class="player-score red-score"><strong id="p2-health">♥ ♥ ♥</strong><span id="p2-label">ИГРОК 2</span><span class="player-dot"></span></div>
+        <div class="player-score red-score"><strong id="p2-health">HP 3 / 3</strong><i class="health-track"><i id="p2-health-bar"></i></i><span id="p2-label">ИГРОК 2</span><span class="player-dot"></span></div>
       </header>
       <div class="canvas-wrap">
         <canvas id="game-canvas"></canvas>
         <div id="game-message" class="game-message hidden"></div>
+        <div id="shop-panel" class="shop-panel hidden">
+          <p class="eyebrow">МЕЖДУ ВОЛНАМИ</p>
+          <h2>Магазин улучшений</h2>
+          <p class="shop-balance">Твои очки: <strong id="shop-score">0</strong></p>
+          <div id="shop-items" class="shop-items"></div>
+          <button id="continue-wave" class="button button-light">Продолжить</button>
+        </div>
       </div>
       <footer class="controls-bar">
         <span><b>WASD</b> движение и поворот</span><span><b>ПРОБЕЛ</b> огонь</span>

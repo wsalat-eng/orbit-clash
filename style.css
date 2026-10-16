@@ -47,21 +47,35 @@ input:focus { border-color: var(--blue); }
 .game-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 58px; padding: 0 8px; }
 .game-title { font-family: 'Barlow Condensed', sans-serif; letter-spacing: 2px; font-weight: 700; font-size: 20px; }
 .game-title span { display: block; color: #61ce96; font: 9px 'Space Mono'; letter-spacing: 1px; margin-top: 3px; }
-.player-score { display: flex; align-items: center; gap: 8px; font-size: 10px; min-width: 190px; text-align: left; }
+.player-score { display: flex; align-items: center; gap: 8px; font-size: 10px; min-width: 230px; text-align: left; flex-wrap: wrap; }
 .red-score { justify-content: flex-end; text-align: right; }
-.player-score strong { font-size: 11px; letter-spacing: 2px; color: var(--blue); }
+.player-score strong { font-size: 11px; letter-spacing: 1px; color: var(--blue); }
 .red-score strong { color: var(--red); }
 .player-dot { width: 8px; height: 8px; background: var(--blue); box-shadow: 0 0 10px var(--blue); display: inline-block; }
 .red-score .player-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+.health-track { display: block; width: 92px; height: 5px; background: #263149; overflow: hidden; flex-basis: 92px; }
+.health-track i { display: block; width: 100%; height: 100%; background: var(--blue); transition: width .2s, background .2s; }
+.red-score .health-track i { background: var(--red); }
 .canvas-wrap { position: relative; border: 1px solid #263b62; background: #060a13; box-shadow: 0 0 45px #1c4f9920; }
 canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
 .game-message { position: absolute; inset: 0; display: grid; place-content: center; background: #070b14c9; }
 .game-message strong { display: block; font: 64px 'Barlow Condensed'; text-transform: uppercase; letter-spacing: 3px; }
 .game-message small { display: block; margin-top: 8px; color: #a8b6d0; font-size: 12px; }
 .game-message button { margin-top: 20px; }
+.shop-panel { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; background: #080d18f2; }
+.shop-panel h2 { font-size: clamp(34px, 5vw, 60px); }
+.shop-balance { margin: 10px 0 18px; color: var(--muted); font-size: 12px; }
+.shop-balance strong { color: #d9c8ff; font-size: 16px; }
+.shop-items { display: grid; grid-template-columns: repeat(2, minmax(180px, 260px)); gap: 8px; width: min(100%, 540px); margin-bottom: 18px; }
+.shop-item { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 11px 13px; border: 1px solid var(--line); background: #111a2b; color: var(--text); text-align: left; cursor: pointer; }
+.shop-item:hover:not(:disabled) { border-color: #b18cff; background: #1d1c39; }
+.shop-item:disabled { opacity: .45; cursor: not-allowed; }
+.shop-item strong { font-size: 11px; }
+.shop-item small { font-size: 9px; }
+.shop-price { color: #d9c8ff; font-size: 10px; }
 .controls-bar { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; padding: 16px 0; color: #71809c; font-size: 9px; }
 .controls-bar b { color: var(--text); font-size: 10px; }
 .solo-stats { color: #9ca9c2; }
 .solo-stats b { color: #d9c8ff; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (max-width: 650px) { .lobby-grid { grid-template-columns: 1fr; } .lobby-grid .join-card { grid-column: auto; } .lobby-screen { padding: 25px 10px; } .game-header { height: 70px; } .game-title { font-size: 15px; } .player-score { min-width: auto; font-size: 8px; flex-wrap: wrap; } .player-score strong { width: 100%; } .controls-player-two { display: none; } .controls-bar { gap: 10px; } }
+@media (max-width: 650px) { .lobby-grid { grid-template-columns: 1fr; } .lobby-grid .join-card { grid-column: auto; } .lobby-screen { padding: 25px 10px; } .game-header { height: 70px; } .game-title { font-size: 15px; } .player-score { min-width: auto; font-size: 8px; } .player-score strong { width: 100%; } .controls-player-two { display: none; } .controls-bar { gap: 10px; } .shop-items { grid-template-columns: 1fr 1fr; } .shop-item { padding: 9px; } }
