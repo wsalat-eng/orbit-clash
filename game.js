@@ -3,7 +3,7 @@ const $ = (id) => document.getElementById(id);
 const lobby = $('lobby'), waiting = $('waiting'), gameScreen = $('game');
 const canvas = $('game-canvas'), ctx = canvas.getContext('2d');
 let peer = null, connection = null, isHost = false, playerNumber = 0, soloMode = false, coopMode = false, connectionTimer = null, handshakeComplete = false;
-let state = null, lastTime = 0, animationId = 0, input = {}, inputSequence = 0;
+let state = null, lastTime = 0, animationId = 0, input = {}, remoteInput = normalizeInput({}), inputSequence = 0, lastInputReceived = 0;
 let audioContext = null, soundEnabled = true;
 let paused = false, shake = 0, banner = { text: '', life: 0 }, lastCountdown = 0;
 const WORLD = { width: 1280, height: 720 };
@@ -88,7 +88,17 @@ function setupConnection() {
       if (coopMode) $('p2-label').textContent = 'НАПАРНИК';
       message('');
     }
-    if (data.type === 'input' && isHost && state && state.players[1]) { state.players[1].input = normalizeInput(data.input); state.players[1].inputSequence = data.sequence || state.players[1].inputSequence + 1; }
+    if (data.type === 'input' && isHost && state && state.players[1]) {
+      remoteInput = normalizeInput(data.input || {});
+      state.players[1].input = remoteInput;
+      state.players[1].inputSequence = Number(data.sequence) || state.players[1].inputSequence + 1;
+      lastInputReceived = performance.now();
+      if ($('control-status')) $('control-status').textContent = 'КАНАЛ УПРАВЛЕНИЯ: ПРИЁМ';
+      connection.send({ type: 'input-ack', sequence: state.players[1].inputSequence });
+    }
+    if (data.type === 'input-ack' && !isHost && $('control-status')) {
+      $('control-status').textContent = 'КАНАЛ УПРАВЛЕНИЯ: ПЕРЕДАЧА';
+    }
     if (data.type === 'shop-buy' && isHost && state && coopMode) buyItem(data.id);
     if (data.type === 'continue-wave' && isHost && state && coopMode) continueWave();
     if (data.type === 'state' && !isHost) {
@@ -164,9 +174,13 @@ function configureHud() {
 function loop(time) {
   const dt = Math.min((time - lastTime) / 1000, .035); lastTime = time;
   applyHostInput();
-  if (state && isHost && state.phase === 'countdown' && Date.now() >= state.phaseEndsAt) state.phase = 'running';
+  if (state && isHost && state.phase === 'countdown' && Date.now() >= state.phaseEndsAt) {
+    state.phase = 'running';
+    state.countdown = 0;
+    broadcastState();
+  }
   if (state && !soloMode) renderNetworkPhase();
-  if (state && state.running && !state.shopOpen && !paused && state.phase === 'running' && (isHost || soloMode)) update(dt);
+  if (state && state.running && !state.shopOpen && !paused && (!state.phase || state.phase === 'running') && (isHost || soloMode)) update(dt);
   if (isHost && state && connection && connection.open) broadcastState();
   if (banner.life > 0) banner.life -= dt;
   shake = Math.max(0, shake - dt * 18);
@@ -174,8 +188,12 @@ function loop(time) {
   animationId = requestAnimationFrame(loop);
 }
 function applyHostInput() {
-  if (!state || !state.players[0] || !isHost) return;
-  state.players[0].input = normalizeInput({ up: !!input.KeyW, down: !!input.KeyS, left: !!input.KeyA, right: !!input.KeyD, fire: !!input.Space, dash: !!input.ShiftLeft || !!input.ShiftRight });
+  if (!state || !state.players[0]) return;
+  if (isHost || soloMode) {
+    state.players[0].input = normalizeInput({ up: !!input.KeyW, down: !!input.KeyS, left: !!input.KeyA, right: !!input.KeyD, fire: !!input.Space, dash: !!input.ShiftLeft || !!input.ShiftRight });
+  }
+  if (isHost && state.players[1]) state.players[1].input = remoteInput;
+  if (isHost && connection && connection.open && performance.now() - lastInputReceived > 1500 && $('control-status')) $('control-status').textContent = 'КАНАЛ УПРАВЛЕНИЯ: НЕТ ВВОДА ГОСТЯ';
 }
 function renderNetworkPhase() {
   if (!state || soloMode) return;
@@ -372,7 +390,7 @@ function showDisconnect() { $('round-state').textContent = '● ИГРОК ВЫ�
 
 window.addEventListener('keydown', (e) => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault(); if (!input[e.code]) sound('click'); input[e.code] = true; sendGuestInput(); });
 window.addEventListener('keyup', (e) => { input[e.code] = false; sendGuestInput(); });
-setInterval(sendGuestInput, 40);
+setInterval(() => { sendGuestInput(); }, 50);
 window.addEventListener('resize', resizeCanvas); resizeCanvas();
 $('room-code-display').onclick = async () => { try { await navigator.clipboard.writeText($('room-code-display').textContent); $('copy-hint').textContent = 'Код скопирован'; } catch { $('copy-hint').textContent = 'Скопируй код вручную'; } };
 $('cancel-room').onclick = () => { if (peer) peer.destroy(); peer = null; connection = null; show(lobby); message(''); };

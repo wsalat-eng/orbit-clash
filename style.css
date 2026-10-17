@@ -89,6 +89,7 @@ canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
 .sound-toggle:hover { color: var(--cream); border-color: var(--cream); }
 .controls-bar { display: flex; justify-content: center; flex-wrap: wrap; gap: 20px; padding: 16px 0; color: #71809c; font-size: 9px; }
 .controls-bar::before { content: '◆ КОСМОДРОМ · СИСТЕМА 07'; color: var(--red); letter-spacing: 1px; }
+.control-status { color: #61d39a; font-size: 8px; letter-spacing: 1px; }
 .controls-bar b { color: var(--text); font-size: 10px; }
 .solo-stats { color: #9ca9c2; }
 .solo-stats b { color: #d9c8ff; }
