@@ -144,7 +144,7 @@ function sound(kind) {
 }
 function sendGuestInput() {
   if (!connection || !connection.open || isHost) return;
-  connection.send({ type: 'input', playerIndex: 1, sequence: ++inputSequence, input: normalizeInput({ up: !!input.ArrowUp, down: !!input.ArrowDown, left: !!input.ArrowLeft, right: !!input.ArrowRight, fire: !!input.Enter, dash: !!input.ShiftLeft || !!input.ShiftRight }) });
+  connection.send({ type: 'input', playerIndex: 1, sequence: ++inputSequence, input: normalizeInput({ up: !!input.KeyW, down: !!input.KeyS, left: !!input.KeyA, right: !!input.KeyD, fire: !!input.Space, dash: !!input.ShiftLeft || !!input.ShiftRight }) });
 }
 
 function newPlayer(x, color, angle) { return { x, y: WORLD.height / 2, angle, color, health: 3, maxHealth: 3, shield: 0, shieldTimer: 0, cooldown: 0, dash: 0, input: {}, inputSequence: 0, alive: true, destroyed: false }; }
@@ -389,7 +389,7 @@ function updateHud() {
 function showWinner() { const msg = $('game-message'); $('shop-panel').classList.add('hidden'); if (!msg.classList.contains('hidden')) return; const title = soloMode ? 'ИГРА ОКОНЧЕНА' : coopMode ? 'РУБЕЖ ПРОРВАН' : (state.winner === playerNumber ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ'); const details = (soloMode || coopMode) ? `<small>Счёт: ${state.score} · Волна: ${state.wave}</small>` : ''; msg.innerHTML = `<strong>${title}</strong>${details}<button class="button button-light" id="restart">ИГРАТЬ СНОВА</button>`; msg.classList.remove('hidden'); sound(soloMode || coopMode ? 'lose' : (state.winner === playerNumber ? 'win' : 'lose')); $('restart').onclick = () => { sound('click'); if (soloMode) startSoloGame(); else if (isHost) { startGame(); if (connection && connection.open) connection.send({ type: 'game-restart' }); } else if (connection && connection.open) connection.send({ type: 'restart' }); }; }
 function showDisconnect() { $('round-state').textContent = '● ИГРОК ВЫШЕЛ'; $('game-message').innerHTML = '<strong>СОЕДИНЕНИЕ ПРЕРВАНО</strong>'; $('game-message').classList.remove('hidden'); }
 
-window.addEventListener('keydown', (e) => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault(); if (!input[e.code]) sound('click'); input[e.code] = true; sendGuestInput(); });
+window.addEventListener('keydown', (e) => { if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault(); if (!input[e.code]) sound('click'); input[e.code] = true; sendGuestInput(); });
 window.addEventListener('keyup', (e) => { input[e.code] = false; sendGuestInput(); });
 setInterval(() => { sendGuestInput(); }, 50);
 setInterval(simulationTick, 1000 / 30);
