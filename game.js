@@ -150,13 +150,13 @@ function sendGuestInput() {
 function newPlayer(x, color, angle) { return { x, y: WORLD.height / 2, angle, color, health: 3, maxHealth: 3, shield: 0, shieldTimer: 0, cooldown: 0, dash: 0, input: {}, inputSequence: 0, alive: true, destroyed: false }; }
 function startGame() {
   soloMode = false;
-  state = { running: true, winner: 0, phase: 'countdown', phaseEndsAt: Date.now() + 3000, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0), newPlayer(1030, 'red', Math.PI)], wins: [0, 0], round: 1, countdown: 3, paused: false };
+  state = { running: true, winner: 0, tick: 0, phase: 'countdown', phaseEndsAt: Date.now() + 3000, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0), newPlayer(1030, 'red', Math.PI)], wins: [0, 0], round: 1, countdown: 3, paused: false };
   if (coopMode) { state.coop = true; state.enemies = []; state.drops = []; state.wave = 1; state.score = 0; state.combo = 0; state.comboTimer = 0; state.shopOpen = false; state.upgrades = { maxHealth: 3, speed: 260, cooldown: .28, shots: 1 }; state.players[0].x = 280; state.players[1].x = 1000; spawnWave(); }
   show(gameScreen); configureHud(); $('shop-panel').classList.add('hidden'); resizeCanvas(); $('game-message').classList.add('hidden'); lastTime = performance.now(); cancelAnimationFrame(animationId); animationId = requestAnimationFrame(loop);
 }
 function startSoloGame() {
   soloMode = true;
-  state = { running: true, phase: 'running', winner: 0, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0)], enemies: [], drops: [], wave: 1, score: 0, combo: 0, comboTimer: 0, waveDelay: 0, shopOpen: false, upgrades: { maxHealth: 3, speed: 260, cooldown: .28, shots: 1, shield: 0 } };
+  state = { running: true, phase: 'running', winner: 0, tick: 0, bullets: [], sparks: [], players: [newPlayer(250, 'blue', 0)], enemies: [], drops: [], wave: 1, score: 0, combo: 0, comboTimer: 0, waveDelay: 0, shopOpen: false, upgrades: { maxHealth: 3, speed: 260, cooldown: .28, shots: 1, shield: 0 } };
   show(gameScreen); configureHud(); $('shop-panel').classList.add('hidden'); resizeCanvas(); $('game-message').classList.add('hidden'); lastTime = performance.now(); cancelAnimationFrame(animationId); animationId = requestAnimationFrame(loop);
   spawnWave();
 }
@@ -172,20 +172,22 @@ function configureHud() {
   $('p1-status').textContent = 'В БОЮ'; $('p2-status').textContent = soloMode ? 'СЕКТОР ДРОНОВ' : 'В БОЮ';
 }
 function loop(time) {
-  const dt = Math.min((time - lastTime) / 1000, .035); lastTime = time;
-  applyHostInput();
-  if (state && isHost && state.phase === 'countdown' && Date.now() >= state.phaseEndsAt) {
-    state.phase = 'running';
-    state.countdown = 0;
-    broadcastState();
-  }
   if (state && !soloMode) renderNetworkPhase();
-  if (state && state.running && !state.shopOpen && !paused && (!state.phase || state.phase === 'running') && (isHost || soloMode)) update(dt);
-  if (isHost && state && connection && connection.open) broadcastState();
-  if (banner.life > 0) banner.life -= dt;
-  shake = Math.max(0, shake - dt * 18);
+  if (banner.life > 0) banner.life -= 1 / 60;
+  shake = Math.max(0, shake - .016 * 18);
   draw(); updateHud();
   animationId = requestAnimationFrame(loop);
+}
+function simulationTick() {
+  if (!state || (!isHost && !soloMode)) return;
+  state.tick = (state.tick || 0) + 1;
+  applyHostInput();
+  if (isHost && state.phase === 'countdown' && Date.now() >= state.phaseEndsAt) {
+    state.phase = 'running';
+    state.countdown = 0;
+  }
+  if (state.running && !state.shopOpen && !paused && (!state.phase || state.phase === 'running')) update(1 / 30);
+  if (isHost && connection && connection.open) broadcastState();
 }
 function applyHostInput() {
   if (!state || !state.players[0]) return;
@@ -223,7 +225,6 @@ function update(dt) {
   if (soloMode || coopMode) resolveSoloBullets();
   else state.bullets.forEach((b) => { const target = state.players[1 - b.owner]; if (Math.hypot(b.x - target.x, b.y - target.y) < 23) damagePlayer(target, 1, b.owner); });
   state.sparks = state.sparks.filter((s) => (s.life -= dt) > 0);
-  if (isHost && connection && connection.open) broadcastState();
 }
 function broadcastState() {
   if (connection && connection.open && state) connection.send({ type: 'state', state });
@@ -391,6 +392,7 @@ function showDisconnect() { $('round-state').textContent = '● ИГРОК ВЫ�
 window.addEventListener('keydown', (e) => { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'ShiftLeft', 'ShiftRight'].includes(e.code)) e.preventDefault(); if (!input[e.code]) sound('click'); input[e.code] = true; sendGuestInput(); });
 window.addEventListener('keyup', (e) => { input[e.code] = false; sendGuestInput(); });
 setInterval(() => { sendGuestInput(); }, 50);
+setInterval(simulationTick, 1000 / 30);
 window.addEventListener('resize', resizeCanvas); resizeCanvas();
 $('room-code-display').onclick = async () => { try { await navigator.clipboard.writeText($('room-code-display').textContent); $('copy-hint').textContent = 'Код скопирован'; } catch { $('copy-hint').textContent = 'Скопируй код вручную'; } };
 $('cancel-room').onclick = () => { if (peer) peer.destroy(); peer = null; connection = null; show(lobby); message(''); };
